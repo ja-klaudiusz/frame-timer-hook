@@ -17,6 +17,14 @@ import React, { useState } from "react";
 
 import { useFrameTimer } from "frame-timer-hook";
 
+const timeDefault = {
+  ms: 0,
+  s: 0,
+  m: 0,
+  h: 0,
+  d: 0,
+};
+
 const Example = () => {
   const [timer, setTimer] = useState(timeDefault);
   const [fps, setFps] = useState(0);
