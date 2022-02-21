@@ -1,0 +1,15 @@
+{
+  "name": "frame-timer-hook",
+  "version": "1.0.0",
+  "description": "Frame timer hook based on requestAnimationFrame. You can start, stop and pause loop. For animation purposes.",
+  "author": "ja-klaudiusz",
+  "license": "MIT",
+  "repository": "ja-klaudiusz/frame-timer-hook",
+  "main": "dist/index.js",
+  "scripts": {
+    "build": "rollup src/index.js --file dist/index.js --format cjs"
+  },
+  "devDependencies": {
+    "rollup": "^2.67.3"
+  }
+}
