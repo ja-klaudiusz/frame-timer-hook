@@ -31,13 +31,16 @@ const Example = () => {
       <p>Frame timer hook with start-stop-pause behaviors</p>
 
       <div className="container">
-        <h3 className="time"> {Math.floor(timer.ms)} ms</h3>
-        <h3 className="timer">
+        <h3 className="time">
+          {" "}
+          {Math.floor(timer.ms)} ms <span className="frames"> | {fps} fps</span>
+        </h3>
+        <h4 className="timer">
           {timer.d}:{String(timer.h % 24).padStart(2, "0")}:
           {String(timer.m % 60).padStart(2, "0")}:
           {String(timer.s % 60).padStart(2, "0")} s
-        </h3>
-        <h3 className="time"> {fps} fps</h3>
+        </h4>
+
         <div className="buttons">
           <button onClick={setStart}>{start ? "Pause" : "Start"}</button>
           <button onClick={setStop} disabled={!pause && !start}>
