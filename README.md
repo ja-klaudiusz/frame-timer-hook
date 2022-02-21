@@ -32,7 +32,6 @@ const Example = () => {
 
       <div className="container">
         <h3 className="time">
-          {" "}
           {Math.floor(timer.ms)} ms <span className="frames"> | {fps} fps</span>
         </h3>
         <h4 className="timer">
