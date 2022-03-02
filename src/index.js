@@ -1,4 +1,4 @@
-import { useRef, useState, useLayoutEffect, useCallback } from "react";
+import { useLayoutEffect, useCallback, useState, useRef } from "react";
 
 const timeDefault = {
   ms: 0,
@@ -8,37 +8,44 @@ const timeDefault = {
   d: 0,
 };
 
-export const useFrameTimer = (cb) => {
-  const time = useRef(timeDefault);
-  const timerRef = useRef();
-  const timestamp = useRef();
-  const pauseTimestamp = useRef(0);
-  const pauseTime = useRef(0);
-  const fps = useRef(0);
-  const lastCalledTime = useRef();
+export const useFrameTimer = (cb, minFps = 60, stopTime) => {
+  const [clock, setClock] = useState(0);
   const [stop, setStop] = useState(false);
   const [start, setStart] = useState(false);
+  const timeRef = useRef(timeDefault);
+  const timerRef = useRef();
+  const timestampRef = useRef();
+  const pauseTimestampRef = useRef(0);
+  const pauseTimeRef = useRef(0);
+  const fpsRef = useRef([]);
+  const lastCalledTimeRef = useRef(0);
 
   const handleReset = () => {
     setStop(false);
     setStart(false);
-    time.current = timeDefault;
-    pauseTimestamp.current = 0;
-    pauseTime.current = 0;
-    timestamp.current = undefined;
-    fps.current = 0;
-    lastCalledTime.current = undefined;
+    timeRef.current = timeDefault;
+    pauseTimestampRef.current = 0;
+    pauseTimeRef.current = 0;
+    timestampRef.current = undefined;
+    fpsRef.current = [];
+    lastCalledTimeRef.current = undefined;
   };
 
   const handleStart = () => {
     setStart(!start);
+    if (!start) {
+      lastCalledTimeRef.current = undefined;
+      fpsRef.current = [];
+    }
   };
 
   const handleStop = () => {
     setStop(true);
+    lastCalledTimeRef.current = undefined;
+    fpsRef.current = [];
   };
 
-  const pause = !start && time.current.ms > 0;
+  const pause = !start && timeRef.current.ms > 0;
 
   const cbData = {
     setStart: handleStart,
@@ -47,55 +54,46 @@ export const useFrameTimer = (cb) => {
   };
 
   const animate = useCallback(() => {
-    const now = performance.now();
-    const ms = now - timestamp.current - pauseTime.current;
-    const s = Math.floor(ms / 1000);
-    const m = Math.floor(ms / 1000 / 60);
-    const h = Math.floor(ms / 1000 / 3600);
-    const d = Math.floor(ms / 1000 / 3600 / 24);
-    time.current = {
+    const msTime =
+      performance.now() - timestampRef.current - pauseTimeRef.current;
+    const ms = Math.floor(msTime);
+
+    timeRef.current = {
       ms,
-      s,
-      m,
-      h,
-      d,
+      s: Math.floor(ms / 1000),
+      m: Math.floor(ms / 1000 / 60),
+      h: Math.floor(ms / 1000 / 3600),
+      d: Math.floor(ms / 1000 / 3600 / 24),
     };
 
-    if (!lastCalledTime.current) {
-      lastCalledTime.current = now;
+    ms > 0 && setClock(Math.floor(ms * (minFps / 1000)));
+
+    if (!!stopTime && msTime >= stopTime) {
+      handleStart();
+    } else {
+      timerRef.current = requestAnimationFrame(animate);
     }
-    const delta = (now - lastCalledTime.current) / 1000;
-
-    fps.current = Math.round(1 / delta);
-    lastCalledTime.current = performance.now();
-
-    cb({
-      time: time.current,
-      fps: fps.current,
-      ...cbData,
-    });
-
-    timerRef.current = requestAnimationFrame(animate);
-  }, []);
+  }, [minFps, stopTime]);
 
   useLayoutEffect(() => {
     if (start) {
-      if (!timestamp.current) {
-        timestamp.current = performance.now();
+      if (!timestampRef.current) {
+        timestampRef.current = performance.now();
       } else {
-        pauseTime.current =
-          pauseTime.current + (performance.now() - pauseTimestamp.current);
+        pauseTimeRef.current =
+          pauseTimeRef.current +
+          (performance.now() - pauseTimestampRef.current);
       }
       timerRef.current = requestAnimationFrame(animate);
     } else {
-      if (timestamp.current) {
-        pauseTimestamp.current = performance.now();
+      if (timestampRef.current) {
+        pauseTimestampRef.current = performance.now();
       }
     }
 
-    if (pause) {
+    if (!stop && pause) {
       cb({
-        time: time.current,
+        time: timeRef.current,
         fps: 0,
         ...cbData,
       });
@@ -104,14 +102,34 @@ export const useFrameTimer = (cb) => {
     if (stop) {
       cancelAnimationFrame(timerRef.current);
       handleReset();
-      cb({
-        time: timeDefault,
-        fps: 0,
-        ...cbData,
-      });
     }
     return () => cancelAnimationFrame(timerRef.current);
   }, [start, stop]);
+
+  useLayoutEffect(() => {
+    if (lastCalledTimeRef.current) {
+      const delta = (performance.now() - lastCalledTimeRef.current) / 1000;
+      if (fpsRef.current.length > 5) {
+        fpsRef.current.splice(5);
+      }
+      fpsRef.current.unshift(
+        parseFloat((1 / delta).toFixed(minFps < 1 ? 3 : 0))
+      );
+    }
+    lastCalledTimeRef.current = performance.now();
+
+    !((!start && timeRef.current.ms > 0) || stop) &&
+      cb({
+        time: timeRef.current,
+        fps:
+          !start || stop
+            ? 0
+            : fpsRef.current.length === 6
+            ? Math.max.apply(Math, fpsRef.current.slice(0, 3))
+            : 0,
+        ...cbData,
+      });
+  }, [clock, start, stop]);
 
   return [start, pause, handleStart, handleStop];
 };
