@@ -1,3 +1,6 @@
+> [!WARNING]
+> Package no longer supported. Instead use [useRequestAnimationFrame React Hook](https://www.npmjs.com/package/request-animation-frame-hook)
+
 # Frame Timer React Hook
 
 > Timer hook with start, stop and pause behaviors as well as minFPS and stopInfo arguments. For animation purposes.
